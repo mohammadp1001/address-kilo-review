@@ -1,25 +1,27 @@
 # address-kilo-review
 
-A Claude Code skill that closes the loop on an AI code review: once a PR is
-pushed, a subagent triages every comment left by an automated reviewer
-(e.g. Kilo Code) as a fix or a rebuttal, waits out however many review
-rounds it takes, and escalates to a human instead of arguing forever or
-silently overriding a real bug.
+A Claude Code subagent that closes the loop on an AI code review: once a
+PR is pushed, it triages every comment left by an automated reviewer (e.g.
+Kilo Code) as a fix or a rebuttal, waits out however many review rounds it
+takes, and escalates to a human instead of arguing forever or silently
+overriding a real bug.
 
 See [`CONTEXT.md`](./CONTEXT.md) for the domain language (Review Loop,
 Review Round, Green, Fix-or-Rebut Triage, Escalation, ...) and
 [`docs/adr/`](./docs/adr/) for why the loop is shaped the way it is.
 
-The skill itself lives in
-[`skills/address-kilo-review/`](./skills/address-kilo-review/). The
-subagent it spawns to actually run the loop - including known GitHub API
-traps discovered from real usage - is defined in
-[`agents/review-loop-owner.md`](./agents/review-loop-owner.md). That agent
-is written specifically against Kilo Code's observed behavior (its exact
-`[bot]`-suffix login quirk, its summary-comment wording) - `review-loop.mjs`
-itself is reviewer-agnostic (the login is a config value), but the agent's
-traps 2 and 3 should be re-verified before pointing this at a different
-reviewer bot.
+The actual entry point is the `review-loop-owner` subagent, defined in
+[`agents/review-loop-owner.md`](./agents/review-loop-owner.md) - spawn it
+directly to run the loop. It's written specifically against Kilo Code's
+observed behavior (its exact `[bot]`-suffix login quirk, its
+summary-comment wording), so its traps 2 and 3 should be re-verified before
+pointing this at a different reviewer bot.
+
+The [`skills/address-kilo-review/`](./skills/address-kilo-review/) skill
+is *not* the entry point - it's reference documentation and tooling
+(`review-loop.mjs`, `guard-hook.mjs`, the config schema) that the agent
+reads or loads as needed. `review-loop.mjs` itself is reviewer-agnostic
+(the login is a config value); only the agent file is Kilo-Code-specific.
 
 ## Dependencies
 
@@ -31,41 +33,31 @@ reviewer bot.
 
 ## Usage
 
-### Install the skill
+### Install
 
-Symlink (or copy) the skill directory into Claude Code's skills folder so
-it's available in any repo:
+Symlink (or copy) both the skill directory and the agent definition into
+Claude Code's global folders so they're available in any repo:
 
 ```
 ln -s /path/to/address-kilo-review/skills/address-kilo-review ~/.claude/skills/address-kilo-review
+ln -s /path/to/address-kilo-review/agents/review-loop-owner.md ~/.claude/agents/review-loop-owner.md
 ```
 
-### Invoke it
+### Spawn the subagent
 
-From inside the repo whose PR you want reviewed:
-
-```
-/address-kilo-review
-```
-
-- With no PR specified, it targets the PR for the current branch.
-- Run it right after pushing a PR for review, or later to resume watching
-  a PR whose review is already in progress (e.g. after an interruption).
-- It spawns a subagent that loops on its own - the invocation returns
-  control to you immediately, and the subagent reports back only once,
-  when the PR goes Green or an Escalation fires.
-
-### The subagent (`review-loop-owner`)
-
-`/address-kilo-review` spawns this agent for you, but you can also spawn
-it directly - e.g. to resume a PR without re-running the skill's setup
-checks. It needs, in its spawn prompt:
+From (or pointed at) the repo whose PR you want reviewed, spawn
+`review-loop-owner` directly with, in its spawn prompt:
 
 - the repo's local working directory
 - the PR number
 - the PR's branch
 - one or two sentences on what the PR actually changes (so it can judge
   Fix-or-Rebut triage without re-deriving the diff's intent from scratch)
+
+Run it right after pushing a PR for review, or later to resume watching a
+PR whose review is already in progress (e.g. after an interruption). It
+loops on its own - spawning it returns control to you immediately, and it
+reports back only once, when the PR goes Green or an Escalation fires.
 
 It needs `Bash`, `Read`, `Edit`, `Write`, `Grep`, `Glob`, `ScheduleWakeup`,
 `Monitor`, and `PushNotification` available as tools - without

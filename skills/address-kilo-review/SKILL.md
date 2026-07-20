@@ -1,34 +1,20 @@
 ---
 name: address-kilo-review
-description: Own a PR through Kilo Code's review until it's Green - triage each comment as a fix or a rebuttal, wait out review rounds, and escalate to a human instead of arguing forever or unilaterally overriding a real bug. Use right after pushing a PR for review, or to resume watching a PR whose review is still in progress.
+description: Reference for the review-loop-owner subagent's tooling (review-loop.mjs, guard-hook.mjs) and per-repo config (.claude/review-loop.config.json) - reviewer login, rebuttal round limit, token/time budgets. Load this when you need the config schema, dependency list, or CLI usage for the Kilo Code review loop; to actually run the loop, spawn the review-loop-owner agent instead.
 ---
 
-Runs the Review Loop described in `CONTEXT.md` and `docs/adr/0001-*.md` /
-`docs/adr/0002-*.md`: a single subagent that owns one PR from "pushed for
-review" to Green (every Reviewer-opened thread resolved), or to Escalation
-if a thread won't settle or the loop's budget runs out.
+Reference documentation and tooling for the Review Loop described in
+`CONTEXT.md` and `docs/adr/0001-*.md` / `docs/adr/0002-*.md`: getting a PR
+from "pushed for review" to Green (every Reviewer-opened thread resolved),
+or to Escalation if a thread won't settle or the loop's budget runs out.
 
-**The loop logic itself lives in `agents/review-loop-owner.md`, not here.**
-That file is the subagent definition - it's the one place with the actual
-step-by-step loop, the known GitHub API traps, and the escalation rules.
-Keeping it in one file (instead of also duplicating it in this SKILL.md)
-is deliberate: a past version of this SKILL.md drifted out of sync with
-what real usage taught the agent file, including missing a real bug in
-`review-loop.mjs` itself. Don't re-add loop steps here - update
-`review-loop-owner.md` instead.
-
-## What to do
-
-1. Ensure `review-loop.mjs` (this directory) is reachable from the target
-   repo, and confirm `gh` is authenticated there.
-2. Spawn the `review-loop-owner` subagent (`Agent` tool, fresh, not a
-   fork - it must survive independently of this conversation) with its
-   spawn prompt containing everything `review-loop-owner.md` says it needs:
-   the repo's local working directory, the PR number, the PR's branch, and
-   a one-to-two sentence summary of what the PR changes.
-3. Return control to whoever invoked this skill immediately - don't wait
-   inline. The subagent reports back exactly once, when the PR is Green or
-   Escalated.
+**This skill does not spawn anything.** The entry point is the
+`review-loop-owner` subagent (`agents/review-loop-owner.md`) - spawn it
+directly. That agent is the one place with the actual step-by-step loop,
+the known GitHub API traps, and the escalation rules; it loads this skill
+(or just reads `review-loop.mjs`/this file directly) when it needs the
+config schema or dependency details below. Don't re-add loop steps here -
+update `review-loop-owner.md` instead.
 
 ## Dependencies
 
