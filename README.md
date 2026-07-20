@@ -68,14 +68,6 @@ trusting the default - confirm the exact login with:
 node skills/address-kilo-review/review-loop.mjs threads <pr-number>
 ```
 
-**Don't** cross-check against `gh api repos/<owner>/<repo>/pulls/<n>/reviews
---jq '.[].user.login'` - that's the REST API, and GitHub's GraphQL API
-(which `review-loop.mjs` actually matches against) drops the `[bot]` suffix
-REST includes for bot accounts. Observed on a real repo: REST reports
-`kilo-code-bot[bot]`, GraphQL reports `kilo-code-bot` for the same
-account - using the REST value in config would silently match zero
-threads.
-
 Leave `tokenBudget` / `timeBudgetHours` as `null` until you've observed a
 few real runs' cost. The budget check runs:
 
