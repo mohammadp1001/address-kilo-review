@@ -11,7 +11,10 @@ Review Round, Green, Fix-or-Rebut Triage, Escalation, ...) and
 [`docs/adr/`](./docs/adr/) for why the loop is shaped the way it is.
 
 The skill itself lives in
-[`skills/address-kilo-review/`](./skills/address-kilo-review/).
+[`skills/address-kilo-review/`](./skills/address-kilo-review/). The
+subagent it spawns to actually run the loop - including known GitHub API
+traps discovered from real usage - is defined in
+[`agents/review-loop-owner.md`](./agents/review-loop-owner.md).
 
 ## Dependencies
 

@@ -135,8 +135,8 @@ function fetchThreads(owner, name, number) {
       `number=${number}`,
     ];
     if (after) args.push("-F", `after=${after}`);
-    const data = ghJson(args);
-    const conn = data.repository.pullRequest.reviewThreads;
+    // `gh api graphql` wraps the response in a top-level "data" key.
+    const conn = ghJson(args).data.repository.pullRequest.reviewThreads;
     threads.push(...conn.nodes);
     if (!conn.pageInfo.hasNextPage) break;
     after = conn.pageInfo.endCursor;
@@ -214,8 +214,9 @@ mutation($threadId: ID!) {
 // text can resolve directly.
 function cmdResolve(threadId) {
   if (!threadId) fail("Usage: node review-loop.mjs resolve <thread-id>");
+  // `gh api graphql` wraps the response in a top-level "data" key.
   const result = ghJson(["api", "graphql", "-f", `query=${RESOLVE_MUTATION}`, "-F", `threadId=${threadId}`]);
-  console.log(JSON.stringify(result.resolveReviewThread.thread, null, 2));
+  console.log(JSON.stringify(result.data.resolveReviewThread.thread, null, 2));
 }
 
 function cmdReply(commentId, body, prArg) {

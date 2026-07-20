@@ -8,12 +8,27 @@ Runs the Review Loop described in `CONTEXT.md` and `docs/adr/0001-*.md` /
 review" to Green (every Reviewer-opened thread resolved), or to Escalation
 if a thread won't settle or the loop's budget runs out.
 
-**This skill spawns a subagent that loops itself.** Don't try to run the
-loop steps below in the invoking (main) agent's own context - spawn a
-subagent (`Agent` tool, fresh `general-purpose` type, not a fork - it needs
-to survive independently of the main conversation) with this skill's
-instructions as its prompt, then return control to the user. The subagent
-reports back exactly once, at the end.
+**The loop logic itself lives in `agents/review-loop-owner.md`, not here.**
+That file is the subagent definition - it's the one place with the actual
+step-by-step loop, the known GitHub API traps, and the escalation rules.
+Keeping it in one file (instead of also duplicating it in this SKILL.md)
+is deliberate: a past version of this SKILL.md drifted out of sync with
+what real usage taught the agent file, including missing a real bug in
+`review-loop.mjs` itself. Don't re-add loop steps here - update
+`review-loop-owner.md` instead.
+
+## What to do
+
+1. Ensure `review-loop.mjs` (this directory) is reachable from the target
+   repo, and confirm `gh` is authenticated there.
+2. Spawn the `review-loop-owner` subagent (`Agent` tool, fresh, not a
+   fork - it must survive independently of this conversation) with its
+   spawn prompt containing everything `review-loop-owner.md` says it needs:
+   the repo's local working directory, the PR number, the PR's branch, and
+   a one-to-two sentence summary of what the PR changes.
+3. Return control to whoever invoked this skill immediately - don't wait
+   inline. The subagent reports back exactly once, when the PR is Green or
+   Escalated.
 
 ## Dependencies
 
@@ -48,74 +63,4 @@ creates it with defaults on first run if missing:
   Escalation (see ADR-0002).
 - `tokenBudget` / `timeBudgetHours` - `null` means unset (no budget
   enforced). Leave unset until you've observed a few real runs' costs via
-  `pr-metrics` - don't invent numbers.
-
-## The loop
-
-One Review Round per iteration:
-
-1. **Check status.**
-   `node skills/address-kilo-review/review-loop.mjs status [pr-number]`
-   If `green: true`, stop - report success to whoever spawned this subagent
-   and end. Don't loop further.
-
-2. **List threads.**
-   `node skills/address-kilo-review/review-loop.mjs threads [pr-number]`
-   Each entry has `isResolved`, `rebuttalCount`, `firstCommentId`, and the
-   full comment history. Skip anything already `isResolved: true`.
-
-3. **Check the budget** (skip this step entirely if both `tokenBudget` and
-   `timeBudgetHours` are `null` in config - that's the "unset" default and
-   means no budget is enforced). Requires the `issue-metrics` skill from
-   https://github.com/mohammadp1001/pr-metrics to be installed
-   (`~/.claude/skills/issue-metrics/`) - if it isn't, say so and skip this
-   check rather than failing the whole loop over it. Run:
-
-   ```
-   node ~/.claude/skills/issue-metrics/issue-metrics.mjs [pr-number] --dry-run
-   ```
-
-   and compare its JSON output's `tokens.total` against `tokenBudget`, and
-   `durationHours` against `timeBudgetHours` (only compare the ones that
-   are non-`null`). If either configured budget is exceeded -> go to
-   **Escalate** instead of triaging.
-
-4. **Fix-or-Rebut Triage each unresolved thread:**
-   - If `rebuttalCount >= rebuttalRoundLimit` for this thread -> **Escalate**
-     for this thread specifically (don't resolve it, don't reply again -
-     leave it for the human).
-   - Otherwise, read the thread's comments and the code they reference.
-     Judge validity:
-     - **Valid concern** -> make the code change, commit, push. Reply via
-       `node review-loop.mjs reply <firstCommentId> --body "..." [--pr <n>]`
-       explaining what changed. Then
-       `node review-loop.mjs resolve <threadId>`.
-     - **Invalid concern** (false positive, already handled elsewhere, out
-       of scope) -> reply via `review-loop.mjs reply` explaining *why*,
-       citing specifics (line numbers, existing tests, prior commits) - a
-       bare "this is fine" is not a rebuttal. Then `resolve <threadId>`.
-
-5. **Wait for the next round.** If any threads were fixed or rebutted this
-   round, Kilo Code will likely re-review. Use `ScheduleWakeup` (not a
-   sleep loop) with a delay matched to how fast Kilo Code has actually been
-   responding on this PR so far (a few minutes if unobserved) and pass this
-   same skill/prompt back so the loop re-enters at step 1.
-
-## Escalate
-
-Stop resolving threads unilaterally. Post a PR comment (`gh pr comment`)
-naming the specific thread(s) or budget that triggered escalation and why,
-then use `PushNotification` to alert the human directly. End the subagent
-here - do not continue looping past an escalation. Report the same
-information back to whoever spawned this subagent.
-
-## Notes
-
-- Never resolve a thread you haven't actually replied to (fix or rebuttal)
-  - resolving without a paper trail defeats the point of Fix-or-Rebut
-    Triage (see CONTEXT.md's "Flagged ambiguities").
-- `rebuttalCount` from `review-loop.mjs threads` is a count of non-Reviewer
-  replies already in the thread - it assumes no human has also posted in
-  that thread. If a human *has* replied in a thread, treat that thread as
-  already escalated (a human is already involved) rather than continuing
-  to triage it automatically.
+  `issue-metrics` - don't invent numbers.
