@@ -18,7 +18,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_CONFIG = {
-  reviewerLogin: "kilocode[bot]",
+  // NOTE: this must match the `author.login` GraphQL returns on a review
+  // thread's comments, NOT the REST `pulls/.../reviews` endpoint's
+  // `user.login` - GitHub's GraphQL API drops the "[bot]" suffix that REST
+  // includes for bot accounts (observed: REST "kilo-code-bot[bot]" vs
+  // GraphQL "kilo-code-bot" for the same account). Verify with
+  // `threads` on a real PR, not by cross-checking against REST.
+  reviewerLogin: "kilo-code-bot",
   rebuttalRoundLimit: 3,
   tokenBudget: null,
   timeBudgetHours: null,

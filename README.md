@@ -46,19 +46,27 @@ defaults if it doesn't exist yet:
 
 ```json
 {
-  "reviewerLogin": "kilocode[bot]",
+  "reviewerLogin": "kilo-code-bot",
   "rebuttalRoundLimit": 3,
   "tokenBudget": null,
   "timeBudgetHours": null
 }
 ```
 
-Check `reviewerLogin` against a real review comment on your PR before
+Check `reviewerLogin` against a real review thread on your PR before
 trusting the default - confirm the exact login with:
 
 ```
-gh api repos/<owner>/<repo>/pulls/<pr-number>/reviews --jq '.[].user.login'
+node skills/address-kilo-review/review-loop.mjs threads <pr-number>
 ```
+
+**Don't** cross-check against `gh api repos/<owner>/<repo>/pulls/<n>/reviews
+--jq '.[].user.login'` - that's the REST API, and GitHub's GraphQL API
+(which `review-loop.mjs` actually matches against) drops the `[bot]` suffix
+REST includes for bot accounts. Observed on a real repo: REST reports
+`kilo-code-bot[bot]`, GraphQL reports `kilo-code-bot` for the same
+account - using the REST value in config would silently match zero
+threads.
 
 Leave `tokenBudget` / `timeBudgetHours` as `null` until you've observed a
 few real runs via the `pr-metrics` / `issue-metrics` skill - don't guess

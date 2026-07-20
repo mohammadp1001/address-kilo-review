@@ -15,6 +15,13 @@ to survive independently of the main conversation) with this skill's
 instructions as its prompt, then return control to the user. The subagent
 reports back exactly once, at the end.
 
+## Dependencies
+
+- `gh` CLI, authenticated, on `PATH`.
+- The `issue-metrics` skill (https://github.com/mohammadp1001/pr-metrics) -
+  **only** if `tokenBudget` or `timeBudgetHours` is set in config. With both
+  left `null` (the default), this skill has no dependency on it.
+
 ## Config
 
 Read `<repo-root>/.claude/review-loop.config.json`. `review-loop.mjs`
@@ -22,17 +29,21 @@ creates it with defaults on first run if missing:
 
 ```json
 {
-  "reviewerLogin": "kilocode[bot]",
+  "reviewerLogin": "kilo-code-bot",
   "rebuttalRoundLimit": 3,
   "tokenBudget": null,
   "timeBudgetHours": null
 }
 ```
 
-- `reviewerLogin` - exact GitHub login Kilo Code posts under. Verify this
-  against an actual review comment on the target PR (`gh api
-  repos/<owner>/<repo>/pulls/<n>/reviews`) before trusting the default - bot
-  account names vary by install.
+- `reviewerLogin` - exact GitHub login Kilo Code posts under, as it appears
+  in `review-loop.mjs threads`' output (GraphQL `author.login`) - not the
+  REST `pulls/.../reviews` endpoint's `user.login`. GitHub's GraphQL API
+  drops the `[bot]` suffix REST includes for bot accounts (observed: REST
+  `kilo-code-bot[bot]` vs GraphQL `kilo-code-bot` for the same account), so
+  cross-checking against REST gives you the wrong string. Run `threads`
+  once on a real PR and read the login back from there before trusting the
+  default.
 - `rebuttalRoundLimit` - max times a single thread can be rebutted before
   Escalation (see ADR-0002).
 - `tokenBudget` / `timeBudgetHours` - `null` means unset (no budget
@@ -53,11 +64,21 @@ One Review Round per iteration:
    Each entry has `isResolved`, `rebuttalCount`, `firstCommentId`, and the
    full comment history. Skip anything already `isResolved: true`.
 
-3. **Check the budget** (only if `tokenBudget` or `timeBudgetHours` is set
-   in config). Run the `issue-metrics`/`pr-metrics` skill in `--dry-run`
-   mode for this PR and compare its `tokens.total` / `durationHours`
-   against config. If either is exceeded -> go to **Escalate** instead of
-   triaging.
+3. **Check the budget** (skip this step entirely if both `tokenBudget` and
+   `timeBudgetHours` are `null` in config - that's the "unset" default and
+   means no budget is enforced). Requires the `issue-metrics` skill from
+   https://github.com/mohammadp1001/pr-metrics to be installed
+   (`~/.claude/skills/issue-metrics/`) - if it isn't, say so and skip this
+   check rather than failing the whole loop over it. Run:
+
+   ```
+   node ~/.claude/skills/issue-metrics/issue-metrics.mjs [pr-number] --dry-run
+   ```
+
+   and compare its JSON output's `tokens.total` against `tokenBudget`, and
+   `durationHours` against `timeBudgetHours` (only compare the ones that
+   are non-`null`). If either configured budget is exceeded -> go to
+   **Escalate** instead of triaging.
 
 4. **Fix-or-Rebut Triage each unresolved thread:**
    - If `rebuttalCount >= rebuttalRoundLimit` for this thread -> **Escalate**
