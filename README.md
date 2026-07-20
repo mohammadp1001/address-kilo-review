@@ -9,13 +9,9 @@ overriding a real bug.
 The entry point is the `review-loop-owner` subagent, defined in
 [`agents/review-loop-owner.md`](./agents/review-loop-owner.md) - spawn it
 directly to run the loop. It's written specifically against Kilo Code's
-observed behavior (its exact `[bot]`-suffix login quirk, its
-summary-comment wording), so its known traps should be re-verified before
+observed behavior, so its known traps should be re-verified before
 pointing this at a different reviewer bot.
 
-[`skills/address-kilo-review/`](./skills/address-kilo-review/) is *not*
-the entry point - it's reference tooling (`review-loop.mjs`,
-`guard-hook.mjs`) the agent uses.
 
 ## Dependencies
 
