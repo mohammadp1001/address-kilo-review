@@ -72,6 +72,42 @@ It needs `Bash`, `Read`, `Edit`, `Write`, `Grep`, `Glob`, `ScheduleWakeup`,
 `PushNotification` it can still escalate via a PR comment, but can't
 deliver the push-notification half of Escalation.
 
+### Safety hook (recommended)
+
+`skills/address-kilo-review/guard-hook.mjs` is a `PreToolUse` hook that
+blocks `review-loop-owner` specifically from force-pushing, hard-resetting,
+or merging/closing the PR it's supposed to be getting reviewed - actions a
+system prompt can only discourage, not actually prevent. It checks
+`agent_type` in the hook payload and only acts on `review-loop-owner`, so
+it's safe to install once, globally, without affecting any other agent or
+session.
+
+Install it in `~/.claude/settings.json` (not per-repo - it needs to be
+present wherever the subagent runs, and self-scopes via `agent_type`):
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"<path-to-installed-skill>/guard-hook.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Merge this into your existing `hooks.PreToolUse` array if you already have
+one - don't replace it. Keep `guard-hook.mjs` in sync with
+`~/.claude/skills/address-kilo-review/` if you installed the skill as a
+hard copy rather than a symlink (see Install above).
+
 ### Configure it (per repo)
 
 First run creates `<repo-root>/.claude/review-loop.config.json` with
