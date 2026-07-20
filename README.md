@@ -15,9 +15,7 @@ pointing this at a different reviewer bot.
 
 [`skills/address-kilo-review/`](./skills/address-kilo-review/) is *not*
 the entry point - it's reference tooling (`review-loop.mjs`,
-`guard-hook.mjs`) the agent uses. `review-loop.mjs` itself is
-reviewer-agnostic (the login is a config value); only the agent file is
-Kilo-Code-specific.
+`guard-hook.mjs`) the agent uses.
 
 ## Dependencies
 
