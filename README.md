@@ -13,6 +13,14 @@ Review Round, Green, Fix-or-Rebut Triage, Escalation, ...) and
 The skill itself lives in
 [`skills/address-kilo-review/`](./skills/address-kilo-review/).
 
+## Dependencies
+
+- `gh` CLI, authenticated, on `PATH`.
+- The [`issue-metrics`](https://github.com/mohammadp1001/pr-metrics)
+  skill - **only** needed if you set `tokenBudget` or `timeBudgetHours` in
+  config (see below). With both left `null` (the default), this skill has
+  no dependency on it.
+
 ## Usage
 
 ### Install the skill
@@ -69,8 +77,15 @@ account - using the REST value in config would silently match zero
 threads.
 
 Leave `tokenBudget` / `timeBudgetHours` as `null` until you've observed a
-few real runs via the `pr-metrics` / `issue-metrics` skill - don't guess
-numbers up front.
+few real runs' cost. The budget check runs:
+
+```
+node ~/.claude/skills/issue-metrics/issue-metrics.mjs [pr-number] --dry-run
+```
+
+and compares its `tokens.total` / `durationHours` against your configured
+ceilings - don't guess numbers up front, and don't set these at all until
+`issue-metrics` is actually installed.
 
 ### Use the CLI directly
 
