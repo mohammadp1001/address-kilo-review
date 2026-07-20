@@ -14,7 +14,12 @@ The skill itself lives in
 [`skills/address-kilo-review/`](./skills/address-kilo-review/). The
 subagent it spawns to actually run the loop - including known GitHub API
 traps discovered from real usage - is defined in
-[`agents/review-loop-owner.md`](./agents/review-loop-owner.md).
+[`agents/review-loop-owner.md`](./agents/review-loop-owner.md). That agent
+is written specifically against Kilo Code's observed behavior (its exact
+`[bot]`-suffix login quirk, its summary-comment wording) - `review-loop.mjs`
+itself is reviewer-agnostic (the login is a config value), but the agent's
+traps 2 and 3 should be re-verified before pointing this at a different
+reviewer bot.
 
 ## Dependencies
 
@@ -49,6 +54,23 @@ From inside the repo whose PR you want reviewed:
 - It spawns a subagent that loops on its own - the invocation returns
   control to you immediately, and the subagent reports back only once,
   when the PR goes Green or an Escalation fires.
+
+### The subagent (`review-loop-owner`)
+
+`/address-kilo-review` spawns this agent for you, but you can also spawn
+it directly - e.g. to resume a PR without re-running the skill's setup
+checks. It needs, in its spawn prompt:
+
+- the repo's local working directory
+- the PR number
+- the PR's branch
+- one or two sentences on what the PR actually changes (so it can judge
+  Fix-or-Rebut triage without re-deriving the diff's intent from scratch)
+
+It needs `Bash`, `Read`, `Edit`, `Write`, `Grep`, `Glob`, `ScheduleWakeup`,
+`Monitor`, and `PushNotification` available as tools - without
+`PushNotification` it can still escalate via a PR comment, but can't
+deliver the push-notification half of Escalation.
 
 ### Configure it (per repo)
 
