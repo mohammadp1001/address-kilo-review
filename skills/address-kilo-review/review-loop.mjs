@@ -177,7 +177,13 @@ function cmdThreads(prArg) {
   const [owner, name] = nameWithOwner().split("/");
   const pr = resolvePr(prArg);
   const threads = annotateThreads(fetchThreads(owner, name, pr.number), config.reviewerLogin);
-  console.log(JSON.stringify({ pr: pr.number, reviewerLogin: config.reviewerLogin, threads }, null, 2));
+  console.log(
+    JSON.stringify(
+      { pr: pr.number, reviewerLogin: config.reviewerLogin, rebuttalRoundLimit: config.rebuttalRoundLimit, threads },
+      null,
+      2
+    )
+  );
 }
 
 function cmdStatus(prArg) {
@@ -191,6 +197,7 @@ function cmdStatus(prArg) {
       {
         pr: pr.number,
         reviewerLogin: config.reviewerLogin,
+        rebuttalRoundLimit: config.rebuttalRoundLimit,
         green: unresolved.length === 0,
         unresolvedCount: unresolved.length,
         totalReviewerThreads: threads.length,

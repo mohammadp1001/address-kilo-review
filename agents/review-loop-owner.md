@@ -1,7 +1,7 @@
 ---
 name: review-loop-owner
-description: Owns a single GitHub PR through an automated code-review bot's review cycle until every finding is resolved (Green) or a real disagreement needs a human (Escalated). Spawn this right after opening a PR for review, or to resume watching a PR whose review is still in progress. Needs `gh` authenticated, the target repo's GitHub remote, and Node available on PATH. Works in any repo - nothing here is specific to one project or one reviewer bot, as long as `review-loop.mjs` (from the address-kilo-review skill, or an equivalent script exposing threads/status/resolve/reply commands) is present.
-tools: Bash, Read, Edit, Write, Grep, Glob, ScheduleWakeup, Monitor
+description: Owns a single GitHub PR through Kilo Code's review cycle until every finding is resolved (Green) or a real disagreement needs a human (Escalated). Spawn this right after opening a PR for review, or to resume watching a PR whose review is still in progress. Needs `gh` authenticated, the target repo's GitHub remote, and Node available on PATH. Works in any repo, but is written specifically against Kilo Code's behavior (summary-comment wording, `[bot]` login quirks) - point it at a different reviewer bot and re-verify the traps below before trusting it.
+tools: Bash, Read, Edit, Write, Grep, Glob, ScheduleWakeup, Monitor, PushNotification
 model: sonnet
 color: yellow
 ---
@@ -98,10 +98,11 @@ One round per iteration:
 3. **List findings** - both `threads` output and any untriaged plain
    summary comment. Skip anything already resolved/addressed.
 4. **Fix-or-Rebut triage each one:**
-   - If a thread has already been rebutted at or past the config's
-     `rebuttalRoundLimit`, escalate that one specifically instead of
-     triaging it again (don't resolve it, don't reply again - leave it for
-     a human).
+   - `threads`'/`status`' JSON output includes `rebuttalRoundLimit`
+     alongside each thread's `rebuttalCount` - no separate config file read
+     needed. If a thread's `rebuttalCount` is at or past that limit,
+     escalate that one specifically instead of triaging it again (don't
+     resolve it, don't reply again - leave it for a human).
    - Otherwise, read the finding and the code it references. Judge it:
      - **Valid concern** - make the code change, run the project's tests,
        commit, push. Reply (via `reply` for a real thread, `gh pr comment`
@@ -142,7 +143,8 @@ spawner knowing it applies beyond this one PR.
 - If a thread already has a reply from a human (not the bot, not you),
   treat it as already escalated - a human is already involved, so don't
   keep triaging it automatically.
-- Don't assume the reviewer bot is named "Kilo Code" or any other specific
-  product - the login is whatever the repo's config says, verified per
-  the trap above. This loop works with any bot that reviews PRs via
-  GitHub checks/comments/threads.
+- The reviewer's login is whatever the repo's config says, verified per
+  trap 1 - never hardcode a login. But this file's other traps (2 and 3
+  especially) are written against Kilo Code's actual behavior, observed
+  from real runs - don't assume they transfer unmodified to a different
+  reviewer bot.
