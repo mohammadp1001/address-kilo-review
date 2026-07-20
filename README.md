@@ -54,6 +54,11 @@ It needs `Bash`, `Read`, `Edit`, `Write`, `Grep`, `Glob`, `ScheduleWakeup`,
 `Monitor`, and `PushNotification` as tools - without `PushNotification` it
 can still escalate via a PR comment, but not push-notify.
 
+It also needs the [`address-kilo-review`](./skills/address-kilo-review/)
+skill installed (see Install above) - the agent calls `review-loop.mjs`
+directly, so without it there's nothing to run `threads`/`status`/
+`reply`/`resolve` with.
+
 ## Safety hook (recommended)
 
 `guard-hook.mjs` is a `PreToolUse` hook that blocks `review-loop-owner`
